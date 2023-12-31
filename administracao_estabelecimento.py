@@ -12,14 +12,14 @@ class ConfiguracoesEstabelecimentoApp:
         self.style = ttk.Style()
         self.style.configure('TLabel', font=('Arial', 12), padding=(5, 5), foreground='#1f497d')  # Cor: Azul Salesforce
         self.style.configure('TEntry', font=('Arial', 12), padding=(5, 5))
-        self.style.configure('TButton', font=('Arial', 12, 'bold'), padding=(5, 5), foreground='#ffffff', background='#0070e0')  # Cor: Azul Salesforce
+        self.style.configure('TButton', font=('Arial', 12, 'bold'), padding=(5, 5), foreground='#0070e0', background='#ffffff')  # Cor: Azul Salesforce
 
         # Frame principal
         self.frame_principal = ttk.PanedWindow(root, orient=tk.HORIZONTAL)
         self.frame_principal.grid(row=0, column=0, padx=10, pady=10, sticky="nsew")
 
         # Dados de Empresa
-        self.frame_empresa = ttk.LabelFrame(self.frame_principal, text="Dados", padding=(10, 10), labelanchor='n')
+        self.frame_empresa = ttk.LabelFrame(self.frame_principal, text="Dados da Empresa", padding=(10, 10), labelanchor='n')
         self.frame_principal.add(self.frame_empresa)
 
         campos_empresa = [
@@ -37,7 +37,7 @@ class ConfiguracoesEstabelecimentoApp:
             setattr(self, f"entry_{field}", entry)
 
         # Dados Financeiros
-        self.frame_financeiro = ttk.LabelFrame(self.frame_principal, text="Financeiros", padding=(10, 10), labelanchor='n')
+        self.frame_financeiro = ttk.LabelFrame(self.frame_principal, text="Dados Financeiros", padding=(10, 10), labelanchor='n')
         self.frame_principal.add(self.frame_financeiro)
 
         campos_financeiros = [
@@ -54,7 +54,7 @@ class ConfiguracoesEstabelecimentoApp:
             setattr(self, f"entry_{field}", entry)
 
         # Dados de Funcionamento
-        self.frame_funcionamento = ttk.LabelFrame(self.frame_principal, text="Funcionamento", padding=(10, 10), labelanchor='n')
+        self.frame_funcionamento = ttk.LabelFrame(self.frame_principal, text="Dados de Funcionamento", padding=(10, 10), labelanchor='n')
         self.frame_principal.add(self.frame_funcionamento)
 
         campos_funcionamento = [
@@ -83,7 +83,11 @@ class ConfiguracoesEstabelecimentoApp:
         conn = sqlite3.connect('banco_dados.db')
         cursor = conn.cursor()
 
-        cursor.execute("SELECT * FROM Configuracoes_Estabelecimento LIMIT 1")
+        cursor.execute("SELECT Nome_Estacionamento, CNPJ_Estacionamento, Email_Estacionamento, Telefone_Estacionamento, "
+                       "Endereco_Estacionamento, Numero_Vagas, Horario_Abertura, Horario_Fechamento, "
+                       "Tarifa_Por_Hora, Tarifa_Diaria, Tarifa_Noturna, Tarifa_Mensal "
+                       "FROM Configuracoes_Estabelecimento LIMIT 1")
+
         dados = cursor.fetchone()
 
         conn.close()
@@ -98,7 +102,7 @@ class ConfiguracoesEstabelecimentoApp:
                 entry = getattr(self, f"entry_{field}", None)
                 if entry:
                     entry.insert(0, value)
-    
+
     def salvar_configuracoes(self):
         conn = sqlite3.connect('banco_dados.db')
         cursor = conn.cursor()
@@ -108,8 +112,8 @@ class ConfiguracoesEstabelecimentoApp:
         dados_existem = cursor.fetchone()[0] > 0
 
         campos = ["Nome_Estacionamento", "CNPJ_Estacionamento", "Email_Estacionamento", "Telefone_Estacionamento",
-                "Endereco_Estacionamento", "Numero_Vagas", "Horario_Abertura", "Horario_Fechamento",
-                "Tarifa_Por_Hora", "Tarifa_Diaria", "Tarifa_Noturna", "Tarifa_Mensal"]
+                  "Endereco_Estacionamento", "Numero_Vagas", "Horario_Abertura", "Horario_Fechamento",
+                  "Tarifa_Por_Hora", "Tarifa_Diaria", "Tarifa_Noturna", "Tarifa_Mensal"]
 
         valores = [getattr(self, f"entry_{field}").get() for field in campos]
 
@@ -117,16 +121,16 @@ class ConfiguracoesEstabelecimentoApp:
             if dados_existem:
                 # Se já existem dados, atualiza
                 cursor.execute("UPDATE Configuracoes_Estabelecimento SET "
-                            "Nome_Estacionamento=?, CNPJ_Estacionamento=?, Email_Estacionamento=?, "
-                            "Telefone_Estacionamento=?, Endereco_Estacionamento=?, Numero_Vagas=?, "
-                            "Horario_Abertura=?, Horario_Fechamento=?, Tarifa_Por_Hora=?, Tarifa_Diaria=?, "
-                            "Tarifa_Noturna=?, Tarifa_Mensal=?",
-                            tuple(valores))
+                               "Nome_Estacionamento=?, CNPJ_Estacionamento=?, Email_Estacionamento=?, "
+                               "Telefone_Estacionamento=?, Endereco_Estacionamento=?, Numero_Vagas=?, "
+                               "Horario_Abertura=?, Horario_Fechamento=?, Tarifa_Por_Hora=?, Tarifa_Diaria=?, "
+                               "Tarifa_Noturna=?, Tarifa_Mensal=?",
+                               tuple(valores))
             else:
                 # Se não existem dados, insere
                 cursor.execute("INSERT INTO Configuracoes_Estabelecimento VALUES "
-                            "(NULL, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-                            tuple(valores))
+                               "(NULL, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                               tuple(valores))
 
             conn.commit()
 
@@ -139,3 +143,8 @@ class ConfiguracoesEstabelecimentoApp:
 
         finally:
             conn.close()
+
+# Criar a janela principal
+root = tk.Tk()
+app = ConfiguracoesEstabelecimentoApp(root)
+root.mainloop()
