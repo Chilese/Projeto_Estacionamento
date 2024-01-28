@@ -38,9 +38,10 @@ CREATE TABLE IF NOT EXISTS Registros_Uso_Vagas (
     ID_registro INTEGER PRIMARY KEY,
     ID_cliente INTEGER,
     ID_veiculo INTEGER,
+    Numero_Vaga INTEGER,
     Data_Hora_Entrada DATETIME NOT NULL,
     Data_Hora_Saida DATETIME,
-    Status_Vaga VARCHAR(20) NOT NULL,
+    Status_Vaga VARCHAR(20),
     FOREIGN KEY (ID_cliente) REFERENCES Clientes(ID_cliente),
     FOREIGN KEY (ID_veiculo) REFERENCES Veiculos(ID_veiculo)
 );
