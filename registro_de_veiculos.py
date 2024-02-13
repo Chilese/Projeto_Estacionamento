@@ -2,7 +2,6 @@ import tkinter as tk
 from tkinter import ttk, messagebox
 import sqlite3
 from datetime import datetime
-from controle_estacionamento import EstacionamentoApp
 
 class RegistroVeiculoApp:
     def __init__(self, root, estacionamento_app):
@@ -93,10 +92,8 @@ class RegistroVeiculoApp:
 
             messagebox.showinfo("Sucesso", "Veículo registrado com sucesso!")
 
-            # Limpar os campos após o registro
-            self.combo_vaga.set("")  # Limpar a seleção do combobox
-            self.entry_placa.delete(0, tk.END)
-            self.entry_modelo.delete(0, tk.END)
+            # Fechar a janela de registro após o registro
+            self.root.destroy()
 
         except sqlite3.Error as e:
             conn.rollback()
@@ -144,9 +141,66 @@ class RegistroVeiculoApp:
 
         print(f"Registro de uso de vaga adicionado na tabela Registros_Uso_Vagas")
 
-# Criar a janela principal
+class EstacionamentoApp:
+    def __init__(self, root):
+        self.root = root
+        self.root.title("Controle de Estacionamento")
+
+        # Conectar ao banco de dados
+        self.conn = sqlite3.connect('banco_dados.db')
+        self.cursor = self.conn.cursor()
+
+        # Criar a tabela
+        self.tabela = ttk.Treeview(root, columns=('Vagas', 'Placa', 'Modelo', 'Entrada', 'Permanência', 'Alerta'), show='headings')
+        self.tabela.heading('Vagas', text='Vagas')
+        self.tabela.heading('Placa', text='Placa')
+        self.tabela.heading('Modelo', text='Modelo')
+        self.tabela.heading('Entrada', text='Entrada')
+        self.tabela.heading('Permanência', text='Permanência')
+        self.tabela.heading('Alerta', text='Alerta')
+
+        # Adicionar dados nas colunas "Vagas" e "Placa"
+        self.carregar_dados()
+
+        # Colocar a tabela na tela
+        self.tabela.grid(row=0, column=0, padx=10, pady=10, sticky="nsew")
+
+        # Botão para abrir a janela de registro
+        btn_abrir_registro = ttk.Button(root, text="Registrar Veículo", command=self.abrir_registro)
+        btn_abrir_registro.grid(row=1, column=0, pady=10)
+
+        # Ajustar o peso para redimensionamento
+        self.root.columnconfigure(0, weight=1)
+        self.root.rowconfigure(0, weight=1)
+
+    def carregar_dados(self):
+        # Obter o número de vagas do banco de dados
+        self.cursor.execute("SELECT Numero_Vagas FROM Configuracoes_Estabelecimento LIMIT 1")
+        resultado = self.cursor.fetchone()
+
+        if resultado:
+            numero_vagas = resultado[0]
+
+            # Preencher a coluna "Vagas"
+            for vaga in range(1, numero_vagas + 1):
+                self.tabela.insert('', 'end', values=(vaga, '', '', '', '', ''))
+
+    def abrir_registro(self):
+        # Chamar o script de registro_de_veiculos.py
+        app_registro = RegistroVeiculoApp(tk.Toplevel(self.root), self)
+        app_registro.root.mainloop()
+
+    def atualizar_interface_veiculo(self, vaga, placa, modelo):
+        # Atualizar a tabela com as informações do veículo registrado
+        for item_id in self.tabela.get_children():
+            if int(self.tabela.item(item_id, 'values')[0]) == int(vaga):
+                # Obter a hora atual para a coluna "Entrada"
+                hora_entrada = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+                # Atualizar as colunas Placa, Modelo e Entrada
+                self.tabela.item(item_id, values=(vaga, placa, modelo, hora_entrada, '', ''))
+
 if __name__ == "__main__":
-    root_registro = tk.Tk()
-    estacionamento_app = EstacionamentoApp(tk.Tk())
-    app_registro = RegistroVeiculoApp(root_registro, estacionamento_app)
-    root_registro.mainloop()
+    root = tk.Tk()
+    app = EstacionamentoApp(root)
+    root.mainloop()
