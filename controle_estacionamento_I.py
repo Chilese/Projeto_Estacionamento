@@ -88,7 +88,7 @@ class RegistroVeiculoApp:
             conn.commit()
 
             # Atualizar a interface principal
-            self.estacionamento_app.atualizar_interface_veiculo(vaga, placa, modelo)
+            self.estacionamento_app.atualizar_interface_veiculo(vaga)
 
             messagebox.showinfo("Sucesso", "Veículo registrado com sucesso!")
 
@@ -181,16 +181,32 @@ class EstacionamentoApp:
         if resultado:
             numero_vagas = resultado[0]
 
-            # Preencher a coluna "Vagas"
             for vaga in range(1, numero_vagas + 1):
-                self.tabela.insert('', 'end', values=(vaga, '', '', '', '', ''))
+                # Verificar se há registros de uso de vaga para a vaga atual
+                self.cursor.execute(
+                    "SELECT r.ID_veiculo, v.Placa_veiculo, v.Modelo_veiculo, r.Data_Hora_Entrada "
+                    "FROM Registros_Uso_Vagas r "
+                    "JOIN Veiculos v ON r.ID_veiculo = v.ID_veiculo "
+                    "WHERE r.Numero_Vaga = ? "
+                    "ORDER BY r.Data_Hora_Entrada DESC "
+                    "LIMIT 1",
+                    (vaga,)
+                )
+                registro = self.cursor.fetchone()
+
+                if registro:
+                    # Se houver registro, preencher as colunas Placa, Modelo e Entrada
+                    self.tabela.insert('', 'end', values=(vaga, registro[1], registro[2], registro[3], '', ''))
+                else:
+                    # Se não houver registro, preencher apenas a coluna Vagas
+                    self.tabela.insert('', 'end', values=(vaga, '', '', '', '', ''))
 
     def abrir_registro(self):
         # Chamar o script de registro_de_veiculos.py
         app_registro = RegistroVeiculoApp(tk.Toplevel(self.root), self)
         app_registro.root.mainloop()
 
-    def atualizar_interface_veiculo(self, vaga, placa, modelo):
+    def atualizar_interface_veiculo(self, vaga):
         # Atualizar a tabela com as informações do veículo registrado
         for item_id in self.tabela.get_children():
             if int(self.tabela.item(item_id, 'values')[0]) == int(vaga):
@@ -198,7 +214,7 @@ class EstacionamentoApp:
                 hora_entrada = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
                 # Atualizar as colunas Placa, Modelo e Entrada
-                self.tabela.item(item_id, values=(vaga, placa, modelo, hora_entrada, '', ''))
+                self.tabela.item(item_id, values=(vaga, '', '', hora_entrada, '', ''))
 
 if __name__ == "__main__":
     root = tk.Tk()
