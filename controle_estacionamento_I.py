@@ -37,24 +37,27 @@ class RegistroVeiculoApp:
         self.carregar_opcoes_vaga()
 
     def carregar_opcoes_vaga(self):
-        # Obter o número de vagas do banco de dados
-        conn = sqlite3.connect('banco_dados.db')
-        cursor = conn.cursor()
-        cursor.execute("SELECT Numero_Vagas FROM Configuracoes_Estabelecimento LIMIT 1")
-        resultado = cursor.fetchone()
-        conn.close()
+        try:
+            # Obter o número de vagas do banco de dados
+            with sqlite3.connect('banco_dados.db') as conn:
+                cursor = conn.cursor()
+                cursor.execute("SELECT Numero_Vagas FROM Configuracoes_Estabelecimento LIMIT 1")
+                resultado = cursor.fetchone()
 
-        if resultado:
-            numero_vagas = resultado[0]
-            opcoes_vaga = [str(vaga) for vaga in range(1, numero_vagas + 1)]
+            if resultado:
+                numero_vagas = resultado[0]
+                opcoes_vaga = [str(vaga) for vaga in range(1, numero_vagas + 1)]
 
-            # Configurar as opções do combobox
-            self.combo_vaga["values"] = opcoes_vaga
-            # Definir a primeira opção como selecionada por padrão
-            self.combo_vaga.current(0)
+                # Configurar as opções do combobox
+                self.combo_vaga["values"] = opcoes_vaga
+                # Definir a primeira opção como selecionada por padrão
+                self.combo_vaga.current(0)
 
-            # Conectar a variável à combobox
-            self.combo_vaga.bind("<<ComboboxSelected>>", self.atualizar_numero_vaga)
+                # Conectar a variável à combobox
+                self.combo_vaga.bind("<<ComboboxSelected>>", self.atualizar_numero_vaga)
+
+        except sqlite3.Error as e:
+            messagebox.showerror("Erro", f"Erro ao carregar opções de vagas: {e}")
 
     def atualizar_numero_vaga(self, event):
         # Atualizar a variável com o número da vaga selecionada
