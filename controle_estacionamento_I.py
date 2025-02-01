@@ -1,7 +1,7 @@
 import tkinter as tk
 from tkinter import ttk, messagebox
 import sqlite3
-from datetime import datetime
+from datetime import datetime, timedelta
 
 class RegistroVeiculoApp:
     def __init__(self, root, estacionamento_app):
@@ -162,6 +162,10 @@ class EstacionamentoApp:
         self.tabela.heading('Permanência', text='Permanência')
         self.tabela.heading('Alerta', text='Alerta')
 
+        # Certifique-se de que a coluna "Permanência" está corretamente configurada na tabela
+        self.tabela.heading("#5", text="Permanência")
+        self.tabela.column("#5", width=100)
+
         # Adicionar dados nas colunas "Vagas" e "Placa"
         self.carregar_dados()
 
@@ -175,6 +179,8 @@ class EstacionamentoApp:
         # Ajustar o peso para redimensionamento
         self.root.columnconfigure(0, weight=1)
         self.root.rowconfigure(0, weight=1)
+
+        self.atualizar_permanencia()
 
     def carregar_dados(self):
         # Obter o número de vagas do banco de dados
@@ -216,8 +222,47 @@ class EstacionamentoApp:
                 # Obter a hora atual para a coluna "Entrada"
                 hora_entrada = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
-                # Atualizar as colunas Placa, Modelo e Entrada
-                self.tabela.item(item_id, values=(vaga, '', '', hora_entrada, '', ''))
+                # Obter as informações do veículo registrado
+                self.cursor.execute(
+                    "SELECT v.Placa_veiculo, v.Modelo_veiculo "
+                    "FROM Registros_Uso_Vagas r "
+                    "JOIN Veiculos v ON r.ID_veiculo = v.ID_veiculo "
+                    "WHERE r.Numero_Vaga = ? "
+                    "ORDER BY r.Data_Hora_Entrada DESC "
+                    "LIMIT 1",
+                    (vaga,)
+                )
+                registro = self.cursor.fetchone()
+
+                if registro:
+                    placa, modelo = registro
+                    # Atualizar as colunas Placa, Modelo e Entrada
+                    self.tabela.item(item_id, values=(vaga, placa, modelo, hora_entrada, "0:00:00", ''))
+
+    def atualizar_permanencia(self):
+        for item_id in self.tabela.get_children():
+            entrada_str = self.tabela.item(item_id, 'values')[3]
+            print(f"Entrada_str: {entrada_str}")  # Adicionando print para depuração
+            try:
+                hora_entrada = datetime.strptime(entrada_str, "%Y-%m-%d %H:%M:%S")
+                permanencia = datetime.now() - hora_entrada
+                total_segundos = int(permanencia.total_seconds())
+                dias, resto = divmod(total_segundos, 86400)
+                horas, resto = divmod(resto, 3600)
+                minutos, segundos = divmod(resto, 60)
+                
+                if dias > 0:
+                    permanencia_str = f"{dias}d {horas:02}:{minutos:02}:{segundos:02}"
+                else:
+                    permanencia_str = f"{horas:02}:{minutos:02}:{segundos:02}"
+                
+                print(f"Permanência: {permanencia_str}")  # Adicionando print para depuração
+                self.tabela.set(item_id, column="Permanência", value=permanencia_str)
+            except Exception as e:
+                print(f"Erro ao atualizar permanência para item_id {item_id}: {e}")
+
+        # Chamar este método novamente após 1 segundo (1000 milissegundos)
+        self.root.after(1000, self.atualizar_permanencia)
 
 if __name__ == "__main__":
     root = tk.Tk()
