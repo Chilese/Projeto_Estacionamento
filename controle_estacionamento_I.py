@@ -2,6 +2,7 @@ import tkinter as tk
 from tkinter import ttk, messagebox
 import sqlite3
 from datetime import datetime, timedelta
+import pagamento_encerramento  # Importar o novo módulo
 
 class RegistroVeiculoApp:
     def __init__(self, root, estacionamento_app):
@@ -182,6 +183,8 @@ class EstacionamentoApp:
 
         self.atualizar_permanencia()
 
+        self.tabela.bind("<Double-1>", self.abrir_pagamento_encerramento)  # Adicionar evento de clique duplo
+
     def carregar_dados(self):
         # Obter o número de vagas do banco de dados
         self.cursor.execute("SELECT Numero_Vagas FROM Configuracoes_Estabelecimento LIMIT 1")
@@ -242,27 +245,36 @@ class EstacionamentoApp:
     def atualizar_permanencia(self):
         for item_id in self.tabela.get_children():
             entrada_str = self.tabela.item(item_id, 'values')[3]
-            print(f"Entrada_str: {entrada_str}")  # Adicionando print para depuração
-            try:
-                hora_entrada = datetime.strptime(entrada_str, "%Y-%m-%d %H:%M:%S")
-                permanencia = datetime.now() - hora_entrada
-                total_segundos = int(permanencia.total_seconds())
-                dias, resto = divmod(total_segundos, 86400)
-                horas, resto = divmod(resto, 3600)
-                minutos, segundos = divmod(resto, 60)
-                
-                if dias > 0:
-                    permanencia_str = f"{dias}d {horas:02}:{minutos:02}:{segundos:02}"
-                else:
-                    permanencia_str = f"{horas:02}:{minutos:02}:{segundos:02}"
-                
-                print(f"Permanência: {permanencia_str}")  # Adicionando print para depuração
-                self.tabela.set(item_id, column="Permanência", value=permanencia_str)
-            except Exception as e:
-                print(f"Erro ao atualizar permanência para item_id {item_id}: {e}")
+            if entrada_str:  # Verificar se entrada_str não está vazio
+                try:
+                    hora_entrada = datetime.strptime(entrada_str, "%Y-%m-%d %H:%M:%S")
+                    permanencia = datetime.now() - hora_entrada
+                    total_segundos = int(permanencia.total_seconds())
+                    dias, resto = divmod(total_segundos, 86400)
+                    horas, resto = divmod(resto, 3600)
+                    minutos, segundos = divmod(resto, 60)
+                    
+                    if dias > 0:
+                        permanencia_str = f"{dias}d {horas:02}:{minutos:02}:{segundos:02}"
+                    else:
+                        permanencia_str = f"{horas:02}:{minutos:02}:{segundos:02}"
+                    
+                    self.tabela.set(item_id, column="Permanência", value=permanencia_str)
+                except Exception as e:
+                    print(f"Erro ao atualizar permanência para item_id {item_id}: {e}")
 
         # Chamar este método novamente após 1 segundo (1000 milissegundos)
         self.root.after(1000, self.atualizar_permanencia)
+
+    def abrir_pagamento_encerramento(self, event):
+        item_id = self.tabela.identify_row(event.y)  # Identificar a linha clicada
+        if item_id:
+            vaga = self.tabela.item(item_id, 'values')[0]
+            if self.tabela.item(item_id, 'values')[1]:  # Verificar se a vaga está ocupada
+                nova_janela = tk.Toplevel(self.root)
+                pagamento_encerramento.PagamentoEncerramentoApp(nova_janela, vaga)
+            else:
+                messagebox.showinfo("Informação", "Esta vaga está vazia.")
 
 if __name__ == "__main__":
     root = tk.Tk()
