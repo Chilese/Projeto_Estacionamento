@@ -186,32 +186,38 @@ class EstacionamentoApp:
         self.tabela.bind("<Double-1>", self.abrir_pagamento_encerramento)  # Adicionar evento de clique duplo
 
     def carregar_dados(self):
-        # Obter o número de vagas do banco de dados
-        self.cursor.execute("SELECT Numero_Vagas FROM Configuracoes_Estabelecimento LIMIT 1")
-        resultado = self.cursor.fetchone()
+        try:
+            print("Carregando dados do banco de dados...")
+            # Obter o número de vagas do banco de dados
+            self.cursor.execute("SELECT Numero_Vagas FROM Configuracoes_Estabelecimento LIMIT 1")
+            resultado = self.cursor.fetchone()
+            print(f"Resultado da consulta de número de vagas: {resultado}")
 
-        if resultado:
-            numero_vagas = resultado[0]
+            if resultado:
+                numero_vagas = resultado[0]
 
-            for vaga in range(1, numero_vagas + 1):
-                # Verificar se há registros de uso de vaga para a vaga atual
-                self.cursor.execute(
-                    "SELECT r.ID_veiculo, v.Placa_veiculo, v.Modelo_veiculo, r.Data_Hora_Entrada "
-                    "FROM Registros_Uso_Vagas r "
-                    "JOIN Veiculos v ON r.ID_veiculo = v.ID_veiculo "
-                    "WHERE r.Numero_Vaga = ? "
-                    "ORDER BY r.Data_Hora_Entrada DESC "
-                    "LIMIT 1",
-                    (vaga,)
-                )
-                registro = self.cursor.fetchone()
+                for vaga in range(1, numero_vagas + 1):
+                    # Verificar se há registros de uso de vaga para a vaga atual
+                    self.cursor.execute(
+                        "SELECT r.ID_veiculo, v.Placa_veiculo, v.Modelo_veiculo, r.Data_Hora_Entrada "
+                        "FROM Registros_Uso_Vagas r "
+                        "JOIN Veiculos v ON r.ID_veiculo = v.ID_veiculo "
+                        "WHERE r.Numero_Vaga = ? "
+                        "ORDER BY r.Data_Hora_Entrada DESC "
+                        "LIMIT 1",
+                        (vaga,)
+                    )
+                    registro = self.cursor.fetchone()
+                    print(f"Resultado da consulta para vaga {vaga}: {registro}")
 
-                if registro:
-                    # Se houver registro, preencher as colunas Placa, Modelo e Entrada
-                    self.tabela.insert('', 'end', values=(vaga, registro[1], registro[2], registro[3], '', ''))
-                else:
-                    # Se não houver registro, preencher apenas a coluna Vagas
-                    self.tabela.insert('', 'end', values=(vaga, '', '', '', '', ''))
+                    if registro:
+                        # Se houver registro, preencher as colunas Placa, Modelo e Entrada
+                        self.tabela.insert('', 'end', values=(vaga, registro[1], registro[2], registro[3], '', ''))
+                    else:
+                        # Se não houver registro, preencher apenas a coluna Vagas
+                        self.tabela.insert('', 'end', values=(vaga, '', '', '', '', ''))
+        except sqlite3.Error as e:
+            messagebox.showerror("Erro", f"Erro ao carregar dados: {e}")
 
     def abrir_registro(self):
         # Chamar o script de registro_de_veiculos.py
@@ -219,28 +225,33 @@ class EstacionamentoApp:
         app_registro.root.mainloop()
 
     def atualizar_interface_veiculo(self, vaga):
-        # Atualizar a tabela com as informações do veículo registrado
-        for item_id in self.tabela.get_children():
-            if int(self.tabela.item(item_id, 'values')[0]) == int(vaga):
-                # Obter a hora atual para a coluna "Entrada"
-                hora_entrada = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        try:
+            print(f"Atualizando interface para a vaga {vaga}...")
+            # Atualizar a tabela com as informações do veículo registrado
+            for item_id in self.tabela.get_children():
+                if int(self.tabela.item(item_id, 'values')[0]) == int(vaga):
+                    # Obter a hora atual para a coluna "Entrada"
+                    hora_entrada = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
-                # Obter as informações do veículo registrado
-                self.cursor.execute(
-                    "SELECT v.Placa_veiculo, v.Modelo_veiculo "
-                    "FROM Registros_Uso_Vagas r "
-                    "JOIN Veiculos v ON r.ID_veiculo = v.ID_veiculo "
-                    "WHERE r.Numero_Vaga = ? "
-                    "ORDER BY r.Data_Hora_Entrada DESC "
-                    "LIMIT 1",
-                    (vaga,)
-                )
-                registro = self.cursor.fetchone()
+                    # Obter as informações do veículo registrado
+                    self.cursor.execute(
+                        "SELECT v.Placa_veiculo, v.Modelo_veiculo "
+                        "FROM Registros_Uso_Vagas r "
+                        "JOIN Veiculos v ON r.ID_veiculo = v.ID_veiculo "
+                        "WHERE r.Numero_Vaga = ? "
+                        "ORDER BY r.Data_Hora_Entrada DESC "
+                        "LIMIT 1",
+                        (vaga,)
+                    )
+                    registro = self.cursor.fetchone()
+                    print(f"Resultado da consulta para atualização de interface: {registro}")
 
-                if registro:
-                    placa, modelo = registro
-                    # Atualizar as colunas Placa, Modelo e Entrada
-                    self.tabela.item(item_id, values=(vaga, placa, modelo, hora_entrada, "0:00:00", ''))
+                    if registro:
+                        placa, modelo = registro
+                        # Atualizar as colunas Placa, Modelo e Entrada
+                        self.tabela.item(item_id, values=(vaga, placa, modelo, hora_entrada, "0:00:00", ''))
+        except sqlite3.Error as e:
+            messagebox.showerror("Erro", f"Erro ao atualizar interface: {e}")
 
     def atualizar_permanencia(self):
         for item_id in self.tabela.get_children():
